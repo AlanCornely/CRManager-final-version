@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRManager - Estoque</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <a href="index.html" class="logo">
+            <span>📦</span> CRManager
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-link">📊 Dashboard</a></li>
+            <li><a href="inventory.html" class="nav-link active">📦 Estoque</a></li>
+            <li><a href="create_item.html" class="nav-link">➕ Novo Item</a></li>
+            <li><a href="#" class="nav-link">👥 Clientes</a></li>
+            <li><a href="#" class="nav-link">⚙️ Configurações</a></li>
+            <li><a href="#" id="logout-btn" class="nav-link" style="color: #ef4444;">🚪 Sair</a></li>
+        </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header>
+            <h1>Gerenciar Estoque</h1>
+            <a href="create_item.html" class="btn btn-primary">Novo Item</a>
+        </header>
+
+        <div class="card">
+            <!-- Search and Tags -->
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Pesquisar por nome, SKU...">
+            </div>
+
+            <div class="tag-list">
+                <span class="tag">Eletrônicos</span>
+                <span class="tag">Periféricos</span>
+                <span class="tag">Cabos</span>
+                <span class="tag">Monitores</span>
+                <span class="tag">Em Falta</span>
+            </div>
+
+            <!-- Stock List -->
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome do Item</th>
+                        <th>Tags</th>
+                        <th>Quantidade</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Monitor Dell 24" P2419H</td>
+                        <td><small>Monitores, Eletrônicos</small></td>
+                        <td>45</td>
+                        <td><span style="color: green;">Disponível</span></td>
+                        <td><button class="btn btn-sm btn-primary btn-details">Detalhes</button></td>
+                    </tr>
+                    <tr>
+                        <td>Teclado Mecânico RGB</td>
+                        <td><small>Periféricos</small></td>
+                        <td>12</td>
+                        <td><span style="color: orange;">Baixo Estoque</span></td>
+                        <td><button class="btn btn-sm btn-primary btn-details">Detalhes</button></td>
+                    </tr>
+                    <tr>
+                        <td>Cabo HDMI 2.0 2m</td>
+                        <td><small>Cabos</small></td>
+                        <td>150</td>
+                        <td><span style="color: green;">Disponível</span></td>
+                        <td><button class="btn btn-sm btn-primary btn-details">Detalhes</button></td>
+                    </tr>
+                    <tr>
+                        <td>Mouse Wireless Logitech</td>
+                        <td><small>Periféricos</small></td>
+                        <td>0</td>
+                        <td><span style="color: red;">Esgotado</span></td>
+                        <td><button class="btn btn-sm btn-primary btn-details">Detalhes</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </main>
+
+    <script src="auth.js"></script>
+    <script>
+        Auth.checkAuth();
+        document.addEventListener('DOMContentLoaded', () => {
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    Auth.logout();
+                });
+            }
+        });
+    </script>
+    <script src="script.js"></script>
+</body>
+
+</html>

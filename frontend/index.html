@@ -1,0 +1,1289 @@
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRManager - Pro</title>
+
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Tailwind CSS & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.19/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .sidebar-active {
+            background-color: oklch(var(--p));
+            color: oklch(var(--pc));
+        }
+
+        .fade-enter-active,
+        .fade-leave-active {
+            transition: opacity 0.3s ease;
+        }
+
+        .fade-enter-from,
+        .fade-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body class="bg-base-200 min-h-screen flex flex-col">
+
+    <div id="app" class="flex w-full h-screen overflow-hidden">
+
+        <!-- Login/Signup View -->
+        <div v-if="!isLoggedIn" class="w-full h-full flex items-center justify-center bg-base-200 p-4">
+            <div class="card w-96 bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex flex-col items-center mb-6">
+                        <div
+                            class="w-16 h-16 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-2xl mb-2">
+                            CR</div>
+                        <h2 class="card-title text-2xl">{{ signupMode ? 'Criar Conta' : 'Bem-vindo' }}</h2>
+<p class="text-base-content/60">{{ signupMode ? 'Registre-se para começar' : 'Faça login para continuar' }}</p>
+                    </div>
+
+                    <!-- Error Alert -->
+                    <div v-if="authError" class="alert alert-error mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{{ authError }}</span>
+                    </div>
+
+                    <!-- Login Form -->
+                    <form v-if="!signupMode" @submit.prevent="login">
+                        <div class="form-control w-full mb-4">
+                            <label class="label"><span class="label-text">Email</span></label>
+                            <input v-model="loginEmail" type="email" placeholder="seu@email.com"
+                                class="input input-bordered w-full" required :disabled="authLoading" />
+                        </div>
+                        <div class="form-control w-full mb-6">
+                            <label class="label"><span class="label-text">Senha</span></label>
+                            <input v-model="loginPassword" type="password" placeholder="********"
+                                class="input input-bordered w-full" required :disabled="authLoading" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full" :disabled="authLoading">
+                            <span v-if="authLoading" class="loading loading-spinner"></span>
+                            {{ authLoading ? 'Entrando...' : 'Entrar' }}
+                        </button>
+                    </form>
+
+                    <!-- Signup Form -->
+                    <form v-else @submit.prevent="signup">
+                        <div class="form-control w-full mb-4">
+                            <label class="label"><span class="label-text">Nome</span></label>
+                            <input v-model="signupName" type="text" placeholder="Seu nome"
+                                class="input input-bordered w-full" required :disabled="authLoading" />
+                        </div>
+                        <div class="form-control w-full mb-4">
+                            <label class="label"><span class="label-text">Email</span></label>
+                            <input v-model="signupEmail" type="email" placeholder="seu@email.com"
+                                class="input input-bordered w-full" required :disabled="authLoading" />
+                        </div>
+                        <div class="form-control w-full mb-6">
+                            <label class="label"><span class="label-text">Senha</span></label>
+                            <input v-model="signupPassword" type="password" placeholder="********"
+                                class="input input-bordered w-full" required :disabled="authLoading" minlength="6" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-full" :disabled="authLoading">
+                            <span v-if="authLoading" class="loading loading-spinner"></span>
+                            {{ authLoading ? 'Criando...' : 'Criar Conta' }}
+                        </button>
+                    </form>
+
+                    <div class="divider">OU</div>
+                    <button @click="toggleAuthMode" class="btn btn-outline w-full">
+                        {{ signupMode ? 'Já tem conta? Entrar' : 'Criar nova conta' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Authenticated Layout -->
+        <div v-else class="flex w-full h-full">
+            <!-- Sidebar -->
+            <div v-if="isMobileMenuOpen" class="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                @click="isMobileMenuOpen = false"></div>
+            <aside
+                class="w-64 bg-base-100 shadow-xl flex flex-col z-50 transition-transform duration-300 fixed lg:relative h-full"
+                :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+                <div class="p-4 flex items-center gap-2 border-b border-base-200 h-16">
+                    <div class="w-8 h-8 rounded bg-primary flex items-center justify-center text-white font-bold">CR
+                    </div>
+                    <span class="text-xl font-bold text-base-content">Manager</span>
+                </div>
+
+                <ul class="menu p-4 w-full gap-2 flex-1 overflow-y-auto">
+                    <li v-for="item in menuItems" :key="item.id">
+                        <a :class="{ 'active': currentView === item.id }" @click="changeView(item.id)">
+                            <i :data-lucide="item.icon"></i>
+                            {{ item.label }}
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="p-4 border-t border-base-200 space-y-4">
+                    <!-- New Theme Toggle (Swap) -->
+                    <label class="swap swap-rotate btn btn-ghost btn-block justify-start px-2">
+                        <input type="checkbox" v-model="isDarkMode" />
+                        <!-- sun icon -->
+                        <div class="swap-off flex items-center gap-3 w-full">
+                            <i data-lucide="sun" class="w-5 h-5"></i>
+                            <span>Modo Claro</span>
+                        </div>
+                        <!-- moon icon -->
+                        <div class="swap-on flex items-center gap-3 w-full">
+                            <i data-lucide="moon" class="w-5 h-5"></i>
+                            <span>Modo Escuro</span>
+                        </div>
+                    </label>
+
+                    <div class="dropdown dropdown-top w-full">
+                        <label tabindex="0" class="btn btn-ghost w-full justify-start gap-3 px-0 hover:bg-transparent">
+                            <div class="avatar online placeholder">
+                                <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                    <span class="text-xs">AD</span>
+                                </div>
+                            </div>
+                            <div class="text-left">
+                                <div class="font-bold text-sm">Admin User</div>
+                                <div class="text-xs opacity-50">Clique para opções</div>
+                            </div>
+                        </label>
+                        <ul tabindex="0"
+                            class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52 mb-2">
+                            <li><a>Perfil</a></li>
+                            <li @click="logout"><a class="text-error">Sair</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="flex-1 overflow-y-auto p-4 lg:p-8 relative bg-base-200">
+                <!-- Mobile Header -->
+                <div class="lg:hidden flex items-center justify-between mb-6">
+                    <button class="btn btn-square btn-ghost" @click="isMobileMenuOpen = true">
+                        <i data-lucide="menu"></i>
+                    </button>
+                    <div class="font-bold text-lg">CRManager</div>
+                    <button class="btn btn-square btn-ghost"
+                        @click="isNotificationDrawerOpen = !isNotificationDrawerOpen">
+                        <div class="indicator">
+                            <i data-lucide="bell"></i>
+                            <span v-if="unreadCount > 0" class="badge badge-xs badge-primary indicator-item"></span>
+                        </div>
+                    </button>
+                </div>
+
+                <header class="flex justify-between items-center mb-8">
+                    <div>
+                        <h1 class="text-3xl font-bold text-base-content">{{ currentTitle }}</h1>
+                        <p class="text-base-content/60">{{ currentSubtitle }}</p>
+                    </div>
+                    <div class="hidden lg:flex gap-2">
+                        <button class="btn btn-ghost btn-circle"
+                            @click="isNotificationDrawerOpen = !isNotificationDrawerOpen">
+                            <div class="indicator">
+                                <i data-lucide="bell"></i>
+                                <span v-if="unreadCount > 0" class="badge badge-xs badge-primary indicator-item"></span>
+                            </div>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- Dashboard View -->
+                <div v-if="currentView === 'dashboard'" class="animate-fade-in space-y-6">
+                    <!-- Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="stats shadow bg-base-100">
+                            <div class="stat">
+                                <div class="stat-figure text-primary">
+                                    <i data-lucide="package" class="w-8 h-8 opacity-20"></i>
+                                </div>
+                                <div class="stat-title">Total de Itens</div>
+                                <div class="stat-value text-primary">{{ totalItems }}</div>
+                                <div class="stat-desc">↗︎ 12% vs mês anterior</div>
+                            </div>
+                        </div>
+                        <div class="stats shadow bg-base-100">
+                            <div class="stat">
+                                <div class="stat-figure text-secondary">
+                                    <i data-lucide="dollar-sign" class="w-8 h-8 opacity-20"></i>
+                                </div>
+                                <div class="stat-title">Valor em Estoque</div>
+                                <div class="stat-value text-secondary">R$ {{ totalStockValueCompact }}</div>
+                                <div class="stat-desc">Estável</div>
+                            </div>
+                        </div>
+                        <div class="stats shadow bg-base-100">
+                            <div class="stat">
+                                <div class="stat-figure text-accent">
+                                    <i data-lucide="shopping-bag" class="w-8 h-8 opacity-20"></i>
+                                </div>
+                                <div class="stat-title">Vendas Hoje</div>
+                                <div class="stat-value text-accent">{{ salesToday }}</div>
+                                <div class="stat-desc">R$ {{ salesValueToday.toFixed(2) }}</div>
+                            </div>
+                        </div>
+                        <div class="stats shadow bg-base-100">
+                            <div class="stat">
+                                <div class="stat-figure text-error">
+                                    <i data-lucide="alert-triangle" class="w-8 h-8 opacity-20"></i>
+                                </div>
+                                <div class="stat-title">Baixo Estoque</div>
+                                <div class="stat-value text-error">{{ lowStockCount }}</div>
+                                <div class="stat-desc">Itens precisam de atenção</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Sales -->
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="card-title">Vendas Recentes</h2>
+                                <button class="btn btn-sm btn-ghost" @click="changeView('sales')">Ver Tudo</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Cliente</th>
+                                            <th>Item</th>
+                                            <th>Total</th>
+                                            <th>Pagamento</th>
+                                            <th>Data</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="sale in recentSales" :key="sale.id" class="hover">
+                                            <td>#{{ sale.id }}</td>
+                                            <td class="font-medium">{{ sale.clientName }}</td>
+                                            <td>{{ sale.itemName }} (x{{ sale.quantity }})</td>
+                                            <td class="font-bold">R$ {{ sale.total.toFixed(2) }}</td>
+                                            <td>
+                                                <div class="badge badge-ghost badge-sm">{{ sale.paymentMethod }}</div>
+                                            </td>
+                                            <td class="text-sm opacity-70">{{ sale.date }}</td>
+                                        </tr>
+                                        <tr v-if="sales.length === 0">
+                                            <td colspan="6" class="text-center py-8 text-base-content/50">Nenhuma venda
+                                                registrada ainda.</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Inventory View -->
+                <div v-if="currentView === 'inventory'" class="animate-fade-in">
+                    <div class="card bg-base-100 shadow-xl">
+                        <div class="card-body">
+                            <!-- Header Controls -->
+                            <div class="flex flex-col md:flex-row justify-between gap-4 mb-6">
+                                <div class="form-control w-full md:w-1/3">
+                                    <div class="join">
+                                        <input type="text" placeholder="Buscar itens..."
+                                            class="input input-bordered join-item w-full" v-model="searchQuery" />
+                                        <button class="btn btn-square join-item">
+                                            <i data-lucide="search" class="w-4 h-4"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2">
+                                    <div class="dropdown dropdown-end">
+                                        <label tabindex="0" class="btn btn-outline gap-2">
+                                            <i data-lucide="settings-2"></i> Ações
+                                        </label>
+                                        <ul tabindex="0"
+                                            class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                            <li @click="showTagModal = true"><a><i data-lucide="tag"
+                                                        class="w-4 h-4"></i> Gerenciar Tags</a></li>
+                                            <li><a><i data-lucide="download" class="w-4 h-4"></i> Exportar CSV</a></li>
+                                        </ul>
+                                    </div>
+                                    <button class="btn btn-primary gap-2" @click="startCreateItem">
+                                        <i data-lucide="plus"></i> Novo Item
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Tag Filters -->
+                            <div class="flex flex-wrap gap-2 mb-4" v-if="activeTags.length > 0">
+                                <div v-for="tag in activeTags" :key="tag"
+                                    class="badge badge-lg gap-2 cursor-pointer transition-all hover:scale-105"
+                                    :class="selectedTags.includes(tag) ? 'badge-primary' : 'badge-ghost'"
+                                    @click="toggleTagFilter(tag)">
+                                    {{ tag }}
+                                    <i data-lucide="x" class="w-3 h-3" v-if="selectedTags.includes(tag)"></i>
+                                </div>
+                                <button v-if="selectedTags.length > 0" class="btn btn-ghost btn-xs text-error"
+                                    @click="selectedTags = []">Limpar Filtros</button>
+                            </div>
+
+                            <!-- Table -->
+                            <div class="overflow-x-auto">
+                                <table class="table w-full">
+                                    <thead>
+                                        <tr>
+                                            <th>Produto</th>
+                                            <th>Tags</th>
+                                            <th>Estoque</th>
+                                            <th>Preço</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="item in filteredInventory" :key="item.id" class="hover group">
+                                            <td>
+                                                <div class="flex items-center space-x-3">
+                                                    <div class="avatar placeholder">
+                                                        <div
+                                                            class="mask mask-squircle w-12 h-12 bg-neutral text-neutral-content">
+                                                            <span>{{ item.name.substring(0,2).toUpperCase() }}</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-bold">{{ item.name }}</div>
+                                                        <div class="text-sm opacity-50">{{ item.sku }}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex gap-1 flex-wrap">
+                                                    <span v-for="tag in item.tags" :key="tag"
+                                                        class="badge badge-ghost badge-sm border-base-300">{{ tag
+                                                        }}</span>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        :class="{'text-error font-bold': item.quantity < 5, 'text-warning font-bold': item.quantity >= 5 && item.quantity < 10}">{{
+                                                        item.quantity }}</span>
+                                                    <span v-if="item.quantity < 10 && item.quantity > 0"
+                                                        class="badge badge-xs badge-warning">Baixo</span>
+                                                    <span v-if="item.quantity === 0"
+                                                        class="badge badge-xs badge-error">Esgotado</span>
+                                                </div>
+                                            </td>
+                                            <td class="font-mono">R$ {{ item.price.toFixed(2) }}</td>
+                                            <th>
+                                                <button
+                                                    class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    @click="startEditItem(item)">
+                                                    <i data-lucide="pencil" class="w-3 h-3 mr-1"></i> Editar
+                                                </button>
+                                            </th>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales View (PDV) -->
+                <div v-if="currentView === 'sales'" class="animate-fade-in flex flex-col lg:flex-row gap-6">
+                    <!-- Sales Form -->
+                    <div class="card bg-base-100 shadow-xl flex-1 h-fit">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4 flex items-center gap-2">
+                                <div class="p-2 bg-primary/10 rounded-lg text-primary"><i
+                                        data-lucide="shopping-cart"></i></div>
+                                Registrar Venda
+                            </h2>
+
+                            <form @submit.prevent="registerSale">
+                                <div class="form-control w-full mb-4 relative group">
+                                    <label class="label"><span class="label-text">Cliente</span></label>
+                                    <input type="text" v-model="salesForm.clientName" placeholder="Nome do Cliente"
+                                        class="input input-bordered w-full" list="clients-list" required />
+                                    <datalist id="clients-list">
+                                        <option v-for="client in clients" :key="client.id" :value="client.name">
+                                        </option>
+                                    </datalist>
+                                    <label class="label"
+                                        v-if="salesForm.clientName && !clientExists(salesForm.clientName)">
+                                        <span class="label-text-alt text-success">Novo cliente será registrado
+                                            automaticamente.</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-control w-full mb-4">
+                                    <label class="label"><span class="label-text">Produto</span></label>
+                                    <select class="select select-bordered w-full" v-model="salesForm.selectedItem"
+                                        required>
+                                        <option disabled value="">Selecione um item</option>
+                                        <option v-for="item in inventory" :key="item.id" :value="item"
+                                            :disabled="item.quantity <= 0">
+                                            {{ item.name }} - Preço: R${{ item.price }} - Qtd: {{ item.quantity }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4 mb-4">
+                                    <div class="form-control w-full">
+                                        <label class="label"><span class="label-text">Quantidade</span></label>
+                                        <input type="number" v-model="salesForm.quantity" min="1"
+                                            :max="salesForm.selectedItem ? salesForm.selectedItem.quantity : 1"
+                                            class="input input-bordered w-full" required />
+                                    </div>
+                                    <div class="form-control w-full">
+                                        <label class="label"><span class="label-text">Pagamento</span></label>
+                                        <select class="select select-bordered w-full" v-model="salesForm.paymentMethod">
+                                            <option>Pix</option>
+                                            <option>Cartão Crédito</option>
+                                            <option>Cartão Débito</option>
+                                            <option>Dinheiro</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="divider"></div>
+
+                                <div class="flex justify-between items-end mb-6">
+                                    <div class="text-sm opacity-70">Total da Venda</div>
+                                    <div class="text-3xl font-bold text-primary">R$ {{ currentSaleTotal.toFixed(2) }}
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-full btn-lg" :disabled="!isSaleValid">
+                                    Confirmar Venda
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Sales History -->
+                    <div class="card bg-base-100 shadow-xl flex-1">
+                        <div class="card-body">
+                            <h2 class="card-title mb-4">Histórico de Vendas</h2>
+                            <div class="overflow-x-auto h-[500px]">
+                                <table class="table table-pin-rows">
+                                    <thead>
+                                        <tr>
+                                            <th>Cliente</th>
+                                            <th>Item</th>
+                                            <th>Total</th>
+                                            <th>Método</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="sale in sales" :key="sale.id" class="hover cursor-pointer">
+                                            <td>
+                                                <div class="font-bold">{{ sale.clientName }}</div>
+                                                <div class="text-xs opacity-50">{{ sale.date }}</div>
+                                            </td>
+                                            <td>
+                                                <div>{{ sale.itemName }}</div>
+                                                <div class="text-xs">Qtd: {{ sale.quantity }}</div>
+                                            </td>
+                                            <td class="font-bold text-success font-mono">R$ {{ sale.total.toFixed(2) }}
+                                            </td>
+                                            <td>
+                                                <div class="badge badge-sm">{{ sale.paymentMethod }}</div>
+                                            </td>
+                                        </tr>
+                                        <tr v-if="sales.length === 0">
+                                            <td colspan="4" class="text-center text-base-content/50 py-10">
+                                                <i data-lucide="clipboard-list"
+                                                    class="w-12 h-12 mx-auto mb-2 opacity-20"></i>
+                                                Nenhuma venda realizada.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create/Edit Item View -->
+                <div v-if="currentView === 'create'" class="animate-fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="text-sm breadcrumbs mb-4">
+                            <ul>
+                                <li><a @click="changeView('inventory')">Estoque</a></li>
+                                <li>{{ editingItem ? 'Editar Item' : 'Novo Item' }}</li>
+                            </ul>
+                        </div>
+
+                        <div class="card bg-base-100 shadow-xl">
+                            <div class="card-body">
+                                <h2 class="card-title mb-6">{{ editingItem ? 'Editar Produto' : 'Cadastrar Novo Produto'
+                                    }}</h2>
+
+                                <form @submit.prevent="saveItem">
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Nome do Produto</span></label>
+                                        <input type="text" v-model="newItem.name" placeholder="Ex: Monitor UltraWide"
+                                            class="input input-bordered w-full" required />
+                                    </div>
+
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Descrição</span></label>
+                                        <textarea v-model="newItem.description" class="textarea textarea-bordered h-24"
+                                            placeholder="Detalhes técnicos..."></textarea>
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div class="form-control w-full">
+                                            <label class="label"><span class="label-text">Preço (R$)</span></label>
+                                            <input type="number" v-model="newItem.price" step="0.01"
+                                                class="input input-bordered w-full" required />
+                                        </div>
+                                        <div class="form-control w-full">
+                                            <label class="label"><span class="label-text">Quantidade</span></label>
+                                            <input type="number" v-model="newItem.quantity"
+                                                class="input input-bordered w-full" required />
+                                        </div>
+                                    </div>
+
+                                    <div class="form-control w-full mb-6 relative">
+                                        <label class="label"><span class="label-text">Tags</span></label>
+                                        <div
+                                            class="flex flex-wrap gap-2 mb-2 p-3 border border-base-300 rounded-lg bg-base-200 focus-within:ring-2 focus-within:ring-primary focus-within:border-primary transition-all min-h-[50px]">
+                                            <span v-for="tag in newItem.tags" :key="tag"
+                                                class="badge badge-primary gap-1 py-3">
+                                                {{ tag }}
+                                                <i data-lucide="x"
+                                                    class="w-3 h-3 cursor-pointer hover:bg-white/20 rounded-full"
+                                                    @click="removeNewItemTag(tag)"></i>
+                                            </span>
+                                            <input type="text" v-model="tagInput"
+                                                @keydown.enter.prevent="addTagToNewItem" placeholder="Adicionar tag..."
+                                                class="input input-ghost input-sm flex-1 min-w-[120px] focus:bg-transparent h-auto p-0 ml-1 placeholder-base-content/40" />
+                                        </div>
+                                        <label class="label">
+                                            <span class="label-text-alt text-base-content/60">Sugestões: </span>
+                                            <div class="flex gap-2 ml-2 flex-wrap">
+                                                <span v-for="tag in availableTags" :key="tag"
+                                                    class="badge badge-outline badge-xs cursor-pointer hover:bg-base-300"
+                                                    @click.prevent="addSuggestion(tag)">+ {{ tag }}</span>
+                                            </div>
+                                        </label>
+                                    </div>
+
+                                    <div class="card-actions justify-end">
+                                        <button type="button" class="btn btn-ghost"
+                                            @click="changeView('inventory')">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">{{ editingItem ? 'Atualizar' :
+                                            'Salvar' }}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers View -->
+                <div v-if="currentView === 'customers'" class="animate-fade-in">
+                    <!-- Client List -->
+                    <div class="card bg-base-100 shadow-xl" v-if="!showClientForm">
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-6">
+                                <h2 class="card-title">Gerenciar Clientes</h2>
+                                <button class="btn btn-primary gap-2" @click="startCreateClient">
+                                    <i data-lucide="user-plus"></i> Novo Cliente
+                                </button>
+                            </div>
+
+                            <div class="overflow-x-auto">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Nome</th>
+                                            <th>CPF</th>
+                                            <th>Localização</th>
+                                            <th>Registro</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="client in clients" :key="client.id" class="hover group">
+                                            <td>
+                                                <div class="font-bold">{{ client.name }}</div>
+                                                <div class="text-xs opacity-50">ID: #{{ client.id }}</div>
+                                            </td>
+                                            <td class="font-mono">{{ client.cpf || '-' }}</td>
+                                            <td>
+                                                <div v-if="client.address">
+                                                    <div>{{ client.city }} - {{ client.state }}</div>
+                                                    <div class="text-xs opacity-50">{{ client.cep }}</div>
+                                                </div>
+                                                <span v-else class="opacity-50 text-xs text-center block">-</span>
+                                            </td>
+                                            <td class="text-sm opacity-70">{{ client.registrationDate || 'N/A' }}</td>
+                                            <td>
+                                                <button
+                                                    class="btn btn-ghost btn-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    @click="startEditClient(client)">
+                                                    <i data-lucide="pencil" class="w-3 h-3 mr-1"></i> Editar
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Client Form (Create/Edit) -->
+                    <div class="max-w-2xl mx-auto" v-else>
+                        <div class="text-sm breadcrumbs mb-4">
+                            <ul>
+                                <li><a @click="showClientForm = false">Clientes</a></li>
+                                <li>{{ editingClient ? 'Editar Cliente' : 'Novo Cadastro' }}</li>
+                            </ul>
+                        </div>
+
+                        <div class="card bg-base-100 shadow-xl">
+                            <div class="card-body">
+                                <h2 class="card-title mb-6">{{ editingClient ? 'Atualizar Cliente' : 'Cadastrar Cliente'
+                                    }}</h2>
+
+                                <form @submit.prevent="saveClient">
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Nome Completo *</span></label>
+                                        <input type="text" v-model="newClient.name" class="input input-bordered w-full"
+                                            required />
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4 mb-4">
+                                        <div class="form-control w-full">
+                                            <label class="label"><span class="label-text">CPF</span></label>
+                                            <input type="text" v-model="newClient.cpf" placeholder="000.000.000-00"
+                                                class="input input-bordered w-full" />
+                                        </div>
+                                        <div class="form-control w-full relative">
+                                            <label class="label"><span class="label-text">CEP</span></label>
+                                            <div class="join w-full">
+                                                <input type="text" v-model="newClient.cep" placeholder="00000-000"
+                                                    class="input input-bordered join-item w-full" />
+                                                <button type="button" class="btn btn-square join-item"
+                                                    @click="searchCep" :class="{'loading': isLoadingCep}"
+                                                    title="Buscar CEP">
+                                                    <i data-lucide="search" v-if="!isLoadingCep"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Endereço (Rua, Número,
+                                                Bairro)</span></label>
+                                        <input type="text" v-model="newClient.address"
+                                            class="input input-bordered w-full" />
+                                    </div>
+
+                                    <div class="grid grid-cols-2 gap-4 mb-6">
+                                        <div class="form-control w-full">
+                                            <label class="label"><span class="label-text">Cidade</span></label>
+                                            <input type="text" v-model="newClient.city"
+                                                class="input input-bordered w-full" />
+                                        </div>
+                                        <div class="form-control w-full">
+                                            <label class="label"><span class="label-text">Estado (UF)</span></label>
+                                            <input type="text" v-model="newClient.state"
+                                                class="input input-bordered w-full uppercase" maxlength="2" />
+                                        </div>
+                                    </div>
+
+                                    <div class="card-actions justify-end">
+                                        <button type="button" class="btn btn-ghost"
+                                            @click="showClientForm = false">Cancelar</button>
+                                        <button type="submit" class="btn btn-primary">{{ editingClient ? 'Atualizar' :
+                                            'Salvar Cliente' }}</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings View -->
+                <div v-if="currentView === 'settings'" class="animate-fade-in">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="card bg-base-100 shadow-xl">
+                            <div class="card-body">
+                                <h2 class="card-title mb-6">Configurações da Conta</h2>
+                                <form @submit.prevent="saveSettings">
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Nome</span></label>
+                                        <input type="text" v-model="userSettings.nome"
+                                            class="input input-bordered w-full" required />
+                                    </div>
+                                    <div class="form-control w-full mb-4">
+                                        <label class="label"><span class="label-text">Email</span></label>
+                                        <input type="email" v-model="userSettings.email"
+                                            class="input input-bordered w-full" required />
+                                    </div>
+                                    <div class="form-control w-52 mb-6">
+                                        <label class="label cursor-pointer">
+                                            <span class="label-text">Habilitar Notificações</span>
+                                            <input type="checkbox" class="toggle toggle-primary"
+                                                v-model="userSettings.notificationsEnabled" />
+                                        </label>
+                                    </div>
+                                    <div class="card-actions justify-end">
+                                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+
+        <!-- Tag Manager Modal (Same as before) -->
+        <!-- Notification Drawer -->
+        <div v-if="isNotificationDrawerOpen" class="fixed inset-0 bg-black/20 z-40"
+            @click="isNotificationDrawerOpen = false"></div>
+        <aside
+            class="fixed inset-y-0 left-0 z-50 w-80 bg-base-100 shadow-2xl transition-transform duration-300 transform"
+            :class="isNotificationDrawerOpen ? 'translate-x-0' : '-translate-x-full'">
+            <div class="p-4 border-b border-base-200 flex justify-between items-center">
+                <h3 class="font-bold text-lg">Notificações</h3>
+                <button class="btn btn-sm btn-ghost btn-circle" @click="isNotificationDrawerOpen = false">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="p-4 overflow-y-auto h-full pb-20">
+                <div v-if="notifications.length === 0" class="text-center opacity-50 py-10">
+                    <i data-lucide="bell-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                    <p>Nenhuma notificação nova.</p>
+                </div>
+                <div v-for="notif in notifications" :key="notif.id_notificacao"
+                    class="card bg-base-200 mb-2 transition-all hover:bg-base-300 cursor-pointer"
+                    :class="{'border-l-4 border-primary': !notif.lida}" @click="markAsRead(notif)">
+                    <div class="card-body p-4">
+                        <p class="text-sm font-medium">{{ notif.mensagem }}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <span class="text-xs opacity-50">{{ notif.tipo }}</span>
+                            <span class="text-xs opacity-50">{{ new Date(notif.data_criacao).toLocaleTimeString()
+                                }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-base-200 absolute bottom-0 w-full bg-base-100">
+                <button class="btn btn-ghost btn-sm w-full" @click="markAllAsRead">Marcar todas como lidas</button>
+            </div>
+        </aside>
+
+        <dialog id="tag_modal" class="modal" :class="{ 'modal-open': showTagModal }">
+            <div class="modal-box">
+                <h3 class="font-bold text-lg mb-4">Gerenciar Tags Globais</h3>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" v-model="newGlobalTag" placeholder="Nova tag..."
+                        class="input input-bordered w-full" @keyup.enter="createGlobalTag" />
+                    <button class="btn btn-primary" @click="createGlobalTag">Adicionar</button>
+                </div>
+                <div class="flex flex-wrap gap-2 max-h-60 overflow-y-auto p-2 border rounded-lg bg-base-200">
+                    <div v-for="tag in activeTags" :key="tag" class="badge badge-lg gap-2 bg-base-100 border-base-300">
+                        {{ tag }}
+                    </div>
+                </div>
+                <div class="modal-action">
+                    <button class="btn" @click="showTagModal = false">Fechar</button>
+                </div>
+            </div>
+        </dialog>
+
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        const { createApp, ref, computed, watch, nextTick } = Vue;
+
+        createApp({
+            setup() {
+                // State
+                const isLoggedIn = ref(false);
+                const isDarkMode = ref(false);
+                const currentView = ref('dashboard');
+                const searchQuery = ref('');
+                const selectedTags = ref([]);
+                const tagInput = ref('');
+                const showTagModal = ref(false);
+                const newGlobalTag = ref('');
+
+                // Mobile & UI State
+                const isMobileMenuOpen = ref(false);
+                const isNotificationDrawerOpen = ref(false);
+
+                // Notifications
+                const notifications = ref([]);
+                const unreadCount = ref(0);
+
+                // User Settings
+                const userSettings = ref({
+                    nome: '',
+                    email: '',
+                    notificationsEnabled: true
+                });
+
+                // Authentication State
+                const loginEmail = ref('');
+                const loginPassword = ref('');
+                const signupMode = ref(false);
+                const signupName = ref('');
+                const signupEmail = ref('');
+                const signupPassword = ref('');
+                const authError = ref('');
+                const authLoading = ref(false);
+
+                // Client State
+                const showClientForm = ref(false);
+                const isLoadingCep = ref(false);
+
+                // Edit State
+                const editingItem = ref(null); // ID of item being edited
+                const editingClient = ref(null); // ID of client being edited
+
+                // Data
+                const activeTags = ref(['Eletrônicos', 'Periféricos', 'Cables', 'Monitores', 'Hardware']);
+                const clients = ref([
+                    { id: 1, name: 'Empresa XYZ Ltda', cpf: '00.000.000/0001-00', address: 'Rua A, 123', city: 'São Paulo', state: 'SP', cep: '01000-000', registrationDate: '2024-01-15' },
+                    { id: 2, name: 'João Silva', cpf: '123.456.789-00', address: 'Rua B, 456', city: 'Rio de Janeiro', state: 'RJ', cep: '20000-000', registrationDate: '2024-01-20' }
+                ]);
+
+                const inventory = ref([
+                    { id: 1, name: 'Monitor Dell 24" P2419H', sku: 'MON-DELL-24', quantity: 45, price: 1200.00, tags: ['Eletrônicos', 'Monitores'] },
+                    { id: 2, name: 'Teclado Mecânico RGB', sku: 'TEC-MEC-RGB', quantity: 8, price: 350.00, tags: ['Periféricos'] },
+                    { id: 3, name: 'Cabo HDMI 2.0 2m', sku: 'CAB-HDMI-2', quantity: 150, price: 25.90, tags: ['Cables', 'Eletrônicos'] },
+                    { id: 4, name: 'Mouse Wireless Logitech', sku: 'MOU-LOG-W', quantity: 0, price: 120.00, tags: ['Periféricos'] },
+                ]);
+
+                const sales = ref([]);
+
+                // Forms
+                const newItem = ref({ name: '', description: '', price: '', quantity: '', tags: [] });
+                const salesForm = ref({ clientName: '', selectedItem: '', quantity: 1, paymentMethod: 'Pix' });
+                const newClient = ref({ name: '', cpf: '', cep: '', address: '', city: '', state: '' });
+
+                // Menu
+                const menuItems = [
+                    { id: 'dashboard', label: 'Dashboard', icon: 'layout-dashboard' },
+                    { id: 'inventory', label: 'Estoque', icon: 'package' },
+                    { id: 'sales', label: 'Vendas (PDV)', icon: 'shopping-cart' },
+                    { id: 'create', label: 'Novo Item', icon: 'plus-square' },
+                    { id: 'customers', label: 'Clientes', icon: 'users' },
+                    { id: 'settings', label: 'Configurações', icon: 'settings' },
+                ];
+
+                // Computed
+                const currentTitle = computed(() => {
+                    if (currentView.value === 'create') return editingItem.value ? 'Editar Item' : 'Novo Item';
+                    const item = menuItems.find(i => i.id === currentView.value);
+                    return item ? item.label : 'CRManager';
+                });
+
+                const currentSubtitle = computed(() => {
+                    if (currentView.value === 'dashboard') return 'Visão geral do negócio';
+                    if (currentView.value === 'inventory') return 'Gerenciamento de produtos';
+                    if (currentView.value === 'sales') return 'Registro de vendas e saídas';
+                    if (currentView.value === 'customers') return 'Gestão de base de clientes';
+                    return '';
+                });
+
+                const filteredInventory = computed(() => {
+                    return inventory.value.filter(item => {
+                        const matchesSearch = item.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+                            item.sku.toLowerCase().includes(searchQuery.value.toLowerCase());
+
+                        const matchesTags = selectedTags.value.length === 0 ||
+                            selectedTags.value.every(t => item.tags.includes(t));
+
+                        return matchesSearch && matchesTags;
+                    });
+                });
+
+                const availableTags = computed(() => activeTags.value.filter(t => !newItem.value.tags.includes(t)));
+                const currentSaleTotal = computed(() => (salesForm.value.selectedItem && salesForm.value.quantity) ? salesForm.value.selectedItem.price * salesForm.value.quantity : 0);
+                const isSaleValid = computed(() => salesForm.value.clientName.length > 0 && salesForm.value.selectedItem && salesForm.value.quantity > 0 && salesForm.value.quantity <= (salesForm.value.selectedItem.quantity || 0));
+                const clientExists = (name) => clients.value.some(c => c.name.toLowerCase() === name.toLowerCase());
+
+                // Stats (Same as before)
+                const totalItems = computed(() => inventory.value.reduce((acc, item) => acc + item.quantity, 0));
+                const totalStockValue = computed(() => inventory.value.reduce((acc, item) => acc + (item.price * item.quantity), 0));
+                const totalStockValueCompact = computed(() => totalStockValue.value > 1000 ? (totalStockValue.value / 1000).toFixed(1) + 'k' : totalStockValue.value.toFixed(0));
+                const lowStockCount = computed(() => inventory.value.filter(i => i.quantity < 10).length);
+                const salesToday = computed(() => sales.value.length);
+                const salesValueToday = computed(() => sales.value.reduce((acc, s) => acc + s.total, 0));
+                const recentSales = computed(() => sales.value.slice().reverse().slice(0, 5));
+
+                // Authentication Methods
+                const API_BASE = 'http://localhost:8000/api/v1';
+
+                const checkAuth = () => {
+                    const token = localStorage.getItem('access_token');
+                    if (token) {
+                        isLoggedIn.value = true;
+                        // safeCreateIcons handled by watcher
+                    }
+                };
+
+                const login = async () => {
+                    if (authLoading.value) return;
+
+                    authError.value = '';
+                    authLoading.value = true;
+
+                    try {
+                        const response = await fetch(`${API_BASE}/usuarios/login`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                email: loginEmail.value,
+                                senha: loginPassword.value
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || 'Erro ao fazer login');
+                        }
+
+                        const data = await response.json();
+                        localStorage.setItem('access_token', data.access_token);
+                        isLoggedIn.value = true;
+                        loginEmail.value = '';
+                        loginPassword.value = '';
+                        nextTick(() => safeCreateIcons());
+                    } catch (error) {
+                        authError.value = error.message || 'Erro ao conectar com servidor';
+                        console.error('Login error:', error);
+                    } finally {
+                        authLoading.value = false;
+                    }
+                };
+
+                const signup = async () => {
+                    if (authLoading.value) return;
+
+                    authError.value = '';
+                    authLoading.value = true;
+
+                    try {
+                        // Create user
+                        const response = await fetch(`${API_BASE}/usuarios/`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                nome: signupName.value,
+                                email: signupEmail.value,
+                                senha: signupPassword.value
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const error = await response.json();
+                            throw new Error(error.detail || 'Erro ao criar conta');
+                        }
+
+                        // Auto-login after signup
+                        loginEmail.value = signupEmail.value;
+                        loginPassword.value = signupPassword.value;
+                        await login();
+
+                        // Clear signup form
+                        signupName.value = '';
+                        signupEmail.value = '';
+                        signupPassword.value = '';
+                        signupMode.value = false;
+                    } catch (error) {
+                        authError.value = error.message || 'Erro ao conectar com servidor';
+                        console.error('Signup error:', error);
+                    } finally {
+                        authLoading.value = false;
+                    }
+                };
+
+                const logout = () => {
+                    localStorage.removeItem('access_token');
+                    isLoggedIn.value = false;
+                    loginEmail.value = '';
+                    loginPassword.value = '';
+                    authError.value = '';
+                };
+
+                const toggleAuthMode = () => {
+                    signupMode.value = !signupMode.value;
+                    authError.value = '';
+                };
+
+                const changeView = (view) => {
+                    currentView.value = view;
+                    if (view !== 'create') editingItem.value = null; // Reset edit on nav
+                    if (view !== 'customers') showClientForm.value = false;
+                };
+
+                const toggleTagFilter = (tag) => {
+                    if (selectedTags.value.includes(tag)) selectedTags.value = selectedTags.value.filter(t => t !== tag);
+                    else selectedTags.value.push(tag);
+                };
+
+                const addTagToNewItem = () => {
+                    const val = tagInput.value.trim();
+                    if (val && !newItem.value.tags.includes(val)) {
+                        newItem.value.tags.push(val);
+                        if (!activeTags.value.includes(val)) activeTags.value.push(val);
+                    }
+                    tagInput.value = '';
+                };
+
+                const removeNewItemTag = (tag) => newItem.value.tags = newItem.value.tags.filter(t => t !== tag);
+                const addSuggestion = (tag) => newItem.value.tags.push(tag);
+                const createGlobalTag = () => {
+                    const val = newGlobalTag.value.trim();
+                    if (val && !activeTags.value.includes(val)) { activeTags.value.push(val); newGlobalTag.value = ''; }
+                };
+
+                // ITEM CRUD
+                const startCreateItem = () => {
+                    editingItem.value = null;
+                    newItem.value = { name: '', description: '', price: '', quantity: '', tags: [] };
+                    currentView.value = 'create';
+                };
+
+                const startEditItem = (item) => {
+                    editingItem.value = item.id;
+                    // Clone data to avoid live edit
+                    newItem.value = {
+                        name: item.name,
+                        description: item.description || '',
+                        price: item.price,
+                        quantity: item.quantity,
+                        tags: [...item.tags]
+                    };
+                    currentView.value = 'create';
+                };
+
+                const saveItem = () => {
+                    if (editingItem.value) {
+                        // Update
+                        const index = inventory.value.findIndex(i => i.id === editingItem.value);
+                        if (index !== -1) {
+                            inventory.value[index] = {
+                                ...inventory.value[index],
+                                name: newItem.value.name,
+                                description: newItem.value.description,
+                                price: parseFloat(newItem.value.price),
+                                quantity: parseInt(newItem.value.quantity),
+                                tags: [...newItem.value.tags]
+                            };
+                            alert('Produto atualizado com sucesso!');
+                        }
+                    } else {
+                        // Create
+                        inventory.value.push({
+                            id: inventory.value.length + 1,
+                            name: newItem.value.name,
+                            sku: 'GEN-' + Math.floor(Math.random() * 1000),
+                            quantity: parseInt(newItem.value.quantity),
+                            price: parseFloat(newItem.value.price),
+                            tags: [...newItem.value.tags]
+                        });
+                        alert('Produto criado com sucesso!');
+                    }
+
+                    newItem.value = { name: '', description: '', price: '', quantity: '', tags: [] };
+                    editingItem.value = null;
+                    currentView.value = 'inventory';
+                };
+
+                // Settings Logic
+                const saveSettings = async () => {
+                    // In a real app, this would call DELETE /users/me or UPDATE
+                    // Since we mock backend mainly here or use minimal API:
+                    // window.api.updateUser(userSettings.value);
+                    // For now, assume success
+                    alert('Configurações salvas com sucesso!');
+                };
+
+                // Notification Logic
+                const fetchNotifications = async () => {
+                    // Mock notifications for demo if API fails
+                    // In real app: const res = await fetch('/api/v1/notificacoes');
+                    // notifications.value = await res.json();
+
+                    // Demo Data
+                    if (notifications.value.length === 0) {
+                        notifications.value = [
+                            { id_notificacao: 1, mensagem: 'Bem-vindo ao sistema!', tipo: 'info', lida: false, data_criacao: new Date().toISOString() },
+                            { id_notificacao: 2, mensagem: 'Estoque baixo: Monitor Dell', tipo: 'warning', lida: false, data_criacao: new Date().toISOString() }
+                        ];
+                    }
+                    unreadCount.value = notifications.value.filter(n => !n.lida).length;
+                };
+
+                const markAsRead = async (notif) => {
+                    if (notif.lida) return;
+                    notif.lida = true;
+                    // await fetch(`/api/v1/notificacoes/${notif.id_notificacao}/read`, { method: 'POST' });
+                    unreadCount.value = notifications.value.filter(n => !n.lida).length;
+                };
+
+                const markAllAsRead = async () => {
+                    notifications.value.forEach(n => n.lida = true);
+                    // await fetch('/api/v1/notificacoes/mark-all-read', { method: 'POST' });
+                    unreadCount.value = 0;
+                };
+
+                // Initialize
+                fetchNotifications();
+
+                const registerSale = () => {
+                    if (!isSaleValid.value) return;
+                    const item = salesForm.value.selectedItem;
+                    const qty = parseInt(salesForm.value.quantity);
+                    item.quantity -= qty;
+                    sales.value.push({
+                        id: sales.value.length + 1,
+                        clientName: salesForm.value.clientName,
+                        itemName: item.name,
+                        quantity: qty,
+                        total: item.price * qty,
+                        paymentMethod: salesForm.value.paymentMethod,
+                        date: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+                    });
+                    if (!clientExists(salesForm.value.clientName)) {
+                        clients.value.push({ id: clients.value.length + 1, name: salesForm.value.clientName, registrationDate: new Date().toISOString().split('T')[0] });
+                    }
+                    alert(`Venda registrada com sucesso!`);
+                    salesForm.value.selectedItem = ''; salesForm.value.quantity = 1; salesForm.value.clientName = '';
+                };
+
+                // CLIENT CRUD
+                const searchCep = async () => {
+                    const cep = newClient.value.cep.replace(/\D/g, '');
+                    if (cep.length !== 8) return alert('CEP Inválido');
+                    isLoadingCep.value = true;
+                    try {
+                        const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                        const data = await res.json();
+                        if (data.erro) { alert('CEP não encontrado'); return; }
+                        newClient.value.address = `${data.logradouro}, ${data.bairro}`;
+                        newClient.value.city = data.localidade;
+                        newClient.value.state = data.uf;
+                    } catch (e) { alert('Erro ao buscar CEP'); } finally { isLoadingCep.value = false; }
+                };
+
+                const startCreateClient = () => {
+                    editingClient.value = null;
+                    newClient.value = { name: '', cpf: '', cep: '', address: '', city: '', state: '' };
+                    showClientForm.value = true;
+                };
+
+                const startEditClient = (client) => {
+                    editingClient.value = client.id;
+                    newClient.value = { ...client };
+                    showClientForm.value = true;
+                };
+
+                const saveClient = () => {
+                    if (editingClient.value) {
+                        const index = clients.value.findIndex(c => c.id === editingClient.value);
+                        if (index !== -1) {
+                            clients.value[index] = { ...clients.value[index], ...newClient.value };
+                            alert('Cliente atualizado!');
+                        }
+                    } else {
+                        clients.value.push({
+                            id: clients.value.length + 1,
+                            ...newClient.value,
+                            registrationDate: new Date().toISOString().split('T')[0]
+                        });
+                        alert('Cliente cadastrado!');
+                    }
+                    newClient.value = { name: '', cpf: '', cep: '', address: '', city: '', state: '' };
+                    showClientForm.value = false;
+                    editingClient.value = null;
+                };
+
+                // Helper for Lucide Icons
+                const safeCreateIcons = () => {
+                    nextTick(() => {
+                        try {
+                            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                                window.lucide.createIcons();
+                            } else {
+                                console.warn('Lucide icons not loaded yet');
+                            }
+                        } catch (e) {
+                            console.error('Error creating icons:', e);
+                        }
+                    });
+                };
+
+                // Watchers
+                watch(currentView, safeCreateIcons);
+                watch(isLoggedIn, safeCreateIcons);
+                watch(showClientForm, safeCreateIcons);
+
+                // Theme Watcher
+                watch(isDarkMode, (val) => {
+                    document.documentElement.setAttribute('data-theme', val ? 'dark' : 'light');
+                    localStorage.setItem('theme', val ? 'dark' : 'light');
+                }, { immediate: true });
+
+                // Initialize
+                checkAuth();
+
+                // Check local storage for theme preference
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme === 'dark') {
+                    isDarkMode.value = true;
+                }
+
+                return {
+                    // Auth
+                    isLoggedIn, loginEmail, loginPassword, signupMode, signupName, signupEmail, signupPassword,
+                    authError, authLoading, login, signup, logout, toggleAuthMode,
+                    // Theme
+                    isDarkMode, changeView,
+                    currentView, menuItems, currentTitle, currentSubtitle,
+                    searchQuery, filteredInventory, inventory,
+                    activeTags, selectedTags, toggleTagFilter, availableTags,
+                    newItem, tagInput, addTagToNewItem, removeNewItemTag, addSuggestion, saveItem,
+                    showTagModal, newGlobalTag, createGlobalTag,
+                    salesForm, clients, clientExists, currentSaleTotal, isSaleValid, registerSale, sales,
+                    totalItems, totalStockValueCompact, lowStockCount, salesToday, salesValueToday, recentSales,
+                    // Edit Items
+                    editingItem, startCreateItem, startEditItem,
+                    // Edit Clients
+                    showClientForm, newClient, saveClient, searchCep, isLoadingCep, startCreateClient, startEditClient, editingClient,
+                    // Mobile & Notifications
+                    isMobileMenuOpen, isNotificationDrawerOpen, notifications, unreadCount, userSettings,
+                    saveSettings, markAsRead, markAllAsRead
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+
+</html>
